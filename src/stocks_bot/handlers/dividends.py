@@ -18,13 +18,17 @@ DIVIDENDS_STALE_HOURS = 24
 
 
 async def _ensure_dividends(db: Database, moex: MoexClient, secid: str) -> None:
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
 
     updated = await db.dividends_updated_at(secid)
     if updated is not None:
         age = datetime.now(timezone.utc) - updated
         if age < timedelta(hours=DIVIDENDS_STALE_HOURS):
-            return
+            # пропускаем только если кеш свежий И непустой;
+            # пустой кеш означает сломанный предыдущий запрос — перезапрашиваем
+            cached = await db.get_dividends(secid)
+            if cached:
+                return
     try:
         divs = await moex.fetch_dividends(secid)
     except Exception as e:

@@ -110,7 +110,13 @@ class MoexClient:
         out: list[Dividend] = []
         for row in rows:
             raw_date = row.get("registryclosedate") or row.get("REGISTRYCLOSEDATE")
-            value = row.get("value") or row.get("VALUE")
+            # MOEX ISS uses "dividendnetperms" (net per share), not "value"
+            value = (
+                row.get("dividendnetperms")
+                or row.get("DIVIDENDNETPERMS")
+                or row.get("value")
+                or row.get("VALUE")
+            )
             currency = row.get("currencyid") or row.get("CURRENCYID") or "RUB"
             if not raw_date or value is None:
                 continue
