@@ -14,7 +14,7 @@ from ..moex import MoexClient
 log = logging.getLogger(__name__)
 router = Router()
 
-DIVIDENDS_STALE_HOURS = 24
+DIVIDENDS_STALE_HOURS = 12
 
 
 async def _ensure_dividends(db: Database, moex: MoexClient, secid: str) -> None:

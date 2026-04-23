@@ -75,16 +75,9 @@ def build_report(
     avg_price = total_cost / total_qty if total_qty > 0 else 0.0
 
     first_purchase = purchases[0].purchased_at
-    
-    if total_cost > 0:
-    avg_percent = sum(
-        dividends_since(dividends, p.purchased_at, until=today)
-        * p.qty
-        * effective_price(p.price, p.commission_pct)
-        for p in purchases
-        ) / total_cost * 100
-    else:
-        avg_percent = 0.0
+
+    paid_per_share = dividends_since(dividends, first_purchase, until=today)
+    avg_percent = paid_per_share / avg_price * 100 if avg_price > 0 else 0.0
 
     nxt = next_dividend(dividends, today)
     next_percent: float | None = None
