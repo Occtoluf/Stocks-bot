@@ -22,6 +22,7 @@ class PendingPurchase:
     raw_name: str
     qty: float
     price: float
+    purchased_at: date | None
     suggestions: list[Security]
 
 
@@ -56,12 +57,13 @@ async def _save_purchase(
     raw_name: str,
     qty: float,
     price: float,
+    purchased_at: date | None,
 ) -> tuple[Security, date]:
     commission = await db.get_commission(user_id)
-    today = date.today()
-    await db.add_purchase(user_id, sec.secid, qty, price, commission, today)
+    when = purchased_at or date.today()
+    await db.add_purchase(user_id, sec.secid, qty, price, commission, when)
     await db.set_alias(user_id, raw_name, sec.secid)
-    return sec, today
+    return sec, when
 
 
 @router.message(F.text & ~F.text.startswith("/"))
@@ -76,7 +78,13 @@ async def handle_free_text(message: Message, db: Database) -> None:
 
     if match.picked:
         sec, purchased_at = await _save_purchase(
-            db, user_id, match.picked, parsed.name, parsed.qty, parsed.price
+            db,
+            user_id,
+            match.picked,
+            parsed.name,
+            parsed.qty,
+            parsed.price,
+            parsed.purchased_at,
         )
         await message.answer(_format_confirmation(sec, parsed.qty, parsed.price, purchased_at))
         return
@@ -98,6 +106,7 @@ async def handle_free_text(message: Message, db: Database) -> None:
         raw_name=parsed.name,
         qty=parsed.qty,
         price=parsed.price,
+        purchased_at=parsed.purchased_at,
         suggestions=suggestions,
     )
 
@@ -128,7 +137,13 @@ async def handle_pick(query: CallbackQuery, callback_data: PickCB, db: Database)
         return
 
     sec, purchased_at = await _save_purchase(
-        db, user_id, sec, pending.raw_name, pending.qty, pending.price
+        db,
+        user_id,
+        sec,
+        pending.raw_name,
+        pending.qty,
+        pending.price,
+        pending.purchased_at,
     )
     await query.answer("Сохранено")
     if msg:

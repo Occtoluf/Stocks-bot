@@ -222,12 +222,18 @@ class Database:
         await self.conn.commit()
         return cur.rowcount > 0
 
-    async def update_purchase_qty_price(
-        self, purchase_id: int, user_id: int, qty: float, price: float
+    async def update_purchase(
+        self,
+        purchase_id: int,
+        user_id: int,
+        qty: float,
+        price: float,
+        purchased_at: date,
     ) -> bool:
         cur = await self.conn.execute(
-            "UPDATE purchases SET qty = ?, price = ? WHERE id = ? AND user_id = ?",
-            (qty, price, purchase_id, user_id),
+            "UPDATE purchases SET qty = ?, price = ?, purchased_at = ? "
+            "WHERE id = ? AND user_id = ?",
+            (qty, price, purchased_at.isoformat(), purchase_id, user_id),
         )
         await self.conn.commit()
         return cur.rowcount > 0

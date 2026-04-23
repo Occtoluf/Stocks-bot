@@ -60,17 +60,29 @@ async def cmd_edit(message: Message, command: CommandObject, db: Database) -> No
     args = (command.args or "").strip()
     parts = args.split(maxsplit=1)
     if len(parts) != 2 or not parts[0].isdigit():
-        await message.answer("Формат: <code>/edit 12 10x320.5</code>.")
+        await message.answer(
+            "Формат: <code>/edit 12 10x320.5</code> или <code>/edit 12 10x320.5 1.1.2025</code>."
+        )
         return
     purchase_id = int(parts[0])
     parsed = parse_qty_price(parts[1])
     if parsed is None:
-        await message.answer("Не понял qty/price. Пример: <code>/edit 12 10x320.5</code>.")
+        await message.answer(
+            "Не понял qty/price. Пример: <code>/edit 12 10x320.5 1.1.2025</code>."
+        )
         return
-    ok = await db.update_purchase_qty_price(purchase_id, user_id, parsed.qty, parsed.price)
+    existing = await db.get_purchase(purchase_id, user_id)
+    if existing is None:
+        await message.answer(f"Покупка #{purchase_id} не найдена.")
+        return
+    new_date = parsed.purchased_at or existing.purchased_at
+    ok = await db.update_purchase(
+        purchase_id, user_id, parsed.qty, parsed.price, new_date
+    )
     if ok:
         await message.answer(
-            f"Покупка #{purchase_id} обновлена: {_fmt(parsed.qty)}x{_fmt(parsed.price)}."
+            f"Покупка #{purchase_id} обновлена: "
+            f"{_fmt(parsed.qty)}x{_fmt(parsed.price)} от {new_date.strftime('%d.%m.%y')}."
         )
     else:
         await message.answer(f"Покупка #{purchase_id} не найдена.")
