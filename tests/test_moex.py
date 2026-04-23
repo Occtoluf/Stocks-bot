@@ -1,5 +1,8 @@
 from datetime import date
 
+import httpx
+import pytest
+
 from stocks_bot.moex import MoexClient
 
 
@@ -78,3 +81,37 @@ def test_missing_date_skipped():
         parsed.append(row)
     assert len(parsed) == 1
     assert parsed[0]["registryclosedate"] == "2024-07-05"
+
+
+@pytest.mark.moex
+async def test_moex_fetch_shares_live():
+    """Smoke-test against real MOEX ISS: shares list must include SBER."""
+    async with MoexClient() as client:
+        try:
+            shares = await client.fetch_shares()
+        except (httpx.HTTPError, httpx.TimeoutException) as e:
+            pytest.skip(f"MOEX unreachable: {e}")
+
+    assert shares, "fetch_shares returned empty list"
+    secids = {s.secid for s in shares}
+    assert "SBER" in secids, f"SBER not found among {len(secids)} tickers"
+    sber = next(s for s in shares if s.secid == "SBER")
+    assert sber.shortname
+    assert sber.board == "TQBR"
+    assert sber.type == "share"
+
+
+@pytest.mark.moex
+async def test_moex_fetch_dividends_live():
+    """Smoke-test against real MOEX ISS: SBER has a known historical dividend."""
+    async with MoexClient() as client:
+        try:
+            divs = await client.fetch_dividends("SBER")
+        except (httpx.HTTPError, httpx.TimeoutException) as e:
+            pytest.skip(f"MOEX unreachable: {e}")
+
+    assert divs, "fetch_dividends returned empty list for SBER"
+    for d in divs:
+        assert isinstance(d.registry_close_date, date)
+        assert d.value >= 0
+        assert d.currency
