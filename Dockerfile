@@ -7,9 +7,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install .
-
 COPY src ./src
+RUN pip install --upgrade pip && pip install .
 
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
