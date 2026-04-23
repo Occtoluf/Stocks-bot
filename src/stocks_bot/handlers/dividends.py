@@ -34,7 +34,9 @@ async def _ensure_dividends(db: Database, moex: MoexClient, secid: str) -> None:
     except Exception as e:
         log.warning("failed to refresh dividends for %s: %s", secid, e)
         return
-    await db.replace_dividends(secid, divs)
+    if divs:  # не затираем кеш пустым результатом
+        await db.replace_dividends(secid, divs)
+
 
 
 @router.message(Command("dividends"))

@@ -111,11 +111,10 @@ class MoexClient:
         for row in rows:
             raw_date = row.get("registryclosedate") or row.get("REGISTRYCLOSEDATE")
             # MOEX ISS uses "dividendnetperms" (net per share), not "value"
-            value = (
-                row.get("dividendnetperms")
-                or row.get("DIVIDENDNETPERMS")
-                or row.get("value")
-                or row.get("VALUE")
+            _KEYS = ["dividendnetperms", "DIVIDENDNETPERMS", "value", "VALUE"]
+            value = next(
+                (row[k] for k in _KEYS if k in row and row[k] is not None),
+                None,
             )
             currency = row.get("currencyid") or row.get("CURRENCYID") or "RUB"
             if not raw_date or value is None:
