@@ -31,7 +31,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
-    "moex: live integration tests that hit iss.moex.com (skip offline with -m 'not moex')",
+    "tbank: live integration tests that hit invest-public-api.tinkoff.ru (skip with -m 'not tbank')",
 ]
 
 [tool.ruff]

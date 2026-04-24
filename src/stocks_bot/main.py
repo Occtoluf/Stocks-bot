@@ -10,8 +10,8 @@ from aiogram.enums import ParseMode
 from .config import load_settings
 from .db import Database
 from .handlers import build_router
-from .moex import MoexClient
 from .scheduler import ensure_securities_loaded, start_scheduler
+from .tbank import TBankClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,7 +26,7 @@ async def amain() -> None:
     db = Database(settings.db_path)
     await db.connect()
 
-    moex = MoexClient()
+    tbank = TBankClient(settings.tbank_token)
 
     bot = Bot(
         settings.bot_token,
@@ -34,18 +34,18 @@ async def amain() -> None:
     )
     dp = Dispatcher()
     dp["db"] = db
-    dp["moex"] = moex
+    dp["tbank"] = tbank
     dp.include_router(build_router())
 
-    await ensure_securities_loaded(db, moex)
-    scheduler = start_scheduler(db, moex)
+    await ensure_securities_loaded(db, tbank)
+    scheduler = start_scheduler(db, tbank)
 
     try:
         log.info("bot started")
-        await dp.start_polling(bot, db=db, moex=moex)
+        await dp.start_polling(bot, db=db, tbank=tbank)
     finally:
         scheduler.shutdown(wait=False)
-        await moex.aclose()
+        await tbank.aclose()
         await db.close()
         await bot.session.close()
 

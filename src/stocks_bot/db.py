@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS securities_cache (
     secname     TEXT NOT NULL,
     board       TEXT NOT NULL,
     type        TEXT NOT NULL,
+    figi        TEXT NOT NULL DEFAULT '',
     updated_at  TEXT NOT NULL
 );
 
@@ -67,6 +68,7 @@ class Security:
     secname: str
     board: str
     type: str
+    figi: str = ""
 
 
 @dataclass
@@ -92,12 +94,14 @@ def _now_iso() -> str:
 
 
 def _row_to_security(row: aiosqlite.Row) -> Security:
+    keys = row.keys()
     return Security(
         secid=row["secid"],
         shortname=row["shortname"],
         secname=row["secname"],
         board=row["board"],
         type=row["type"],
+        figi=row["figi"] if "figi" in keys else "",
     )
 
 
@@ -123,6 +127,12 @@ class Database:
         self._conn = await aiosqlite.connect(self.path)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.executescript(SCHEMA)
+        try:
+            await self._conn.execute(
+                "ALTER TABLE securities_cache ADD COLUMN figi TEXT NOT NULL DEFAULT ''"
+            )
+        except aiosqlite.OperationalError:
+            pass
         await self._conn.commit()
 
     async def close(self) -> None:
@@ -242,10 +252,10 @@ class Database:
     async def replace_securities(self, securities: list[Security]) -> None:
         await self.conn.execute("DELETE FROM securities_cache")
         await self.conn.executemany(
-            "INSERT INTO securities_cache(secid, shortname, secname, board, type, updated_at) "
-            "VALUES(?, ?, ?, ?, ?, ?)",
+            "INSERT INTO securities_cache(secid, shortname, secname, board, type, figi, updated_at) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?)",
             [
-                (s.secid, s.shortname, s.secname, s.board, s.type, _now_iso())
+                (s.secid, s.shortname, s.secname, s.board, s.type, s.figi, _now_iso())
                 for s in securities
             ],
         )
